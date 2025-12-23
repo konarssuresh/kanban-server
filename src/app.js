@@ -6,6 +6,7 @@ const dotenv = require("dotenv");
 
 const authRouter = require("./routes/authRouter");
 const boardRouter = require("./routes/boardRouter");
+const taskRouter = require("./routes/taskRouter");
 
 dotenv.config({
   path: path.resolve(__dirname, "../.env"),
@@ -18,6 +19,7 @@ app.use(cookieParser());
 
 app.use("/", authRouter);
 app.use("/", boardRouter);
+app.use("/", taskRouter);
 
 connectDb()
   .then(() => {
