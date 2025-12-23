@@ -1,5 +1,6 @@
 const express = require("express");
 const { validateUser } = require("../middleware/auth");
+const { validateUpdateTaskRequest } = require("../utils/utils");
 
 const { Task } = require("../models/task");
 const { Column } = require("../models/column");
@@ -66,6 +67,53 @@ taskRouter.post(
       res.status(201).json(populated);
     } catch (e) {
       res.status(400).send({ message: e?.message, isSuccess: false });
+    }
+  }
+);
+
+taskRouter.put(
+  "/board/:boardId/column/:columnId/task/:taskId",
+  validateUser,
+  async (req, res) => {
+    try {
+      const user = req.user;
+      validateUpdateTaskRequest(req);
+      const { boardId, columnId, taskId } = req.params;
+      const { title, description, subtasks, position } = req.body;
+
+      // verify task belongs to the column
+      const task = await Task.findOne({
+        _id: taskId,
+        column: columnId,
+        board: boardId,
+        createdBy: user._id,
+      });
+      if (!task) throw new Error("task not found or not accessible");
+      if (title !== undefined) {
+        task.title = title;
+      }
+      if (description !== undefined) {
+        task.description = description;
+      }
+      if (subtasks !== undefined) {
+        const cleanedSubtasks = Array.isArray(subtasks)
+          ? subtasks
+              .filter((s) => s && s.title)
+              .map((s) => ({
+                ...s,
+                title: String(s.title),
+                isDone: !!s.isDone,
+              }))
+          : [];
+        task.subtasks = cleanedSubtasks;
+      }
+      if (position !== undefined) {
+        task.position = position;
+      }
+      const data = await task.save({ new: true });
+      res.json(data);
+    } catch (e) {
+      res.status(403).send({ message: e?.message });
     }
   }
 );

@@ -78,8 +78,14 @@ const validateAddBoardRequest = (req) => {
   }
 };
 
+const validateUpdateTaskRequest = (req) => {
+  const KEYS = ["title", "description", "subtasks", "position"];
+  validateRequest(req, KEYS);
+};
+
 module.exports = {
   validateSignupRequest,
   validateLoginRequest,
   validateAddBoardRequest,
+  validateUpdateTaskRequest,
 };

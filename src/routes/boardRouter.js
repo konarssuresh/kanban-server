@@ -16,6 +16,18 @@ const findBoard = async (queryObj) =>
       options: { sort: { position: 1 } },
     },
   });
+
+// helper that returns single populated board document
+const findBoardOne = async (queryObj) =>
+  Board.findOne(queryObj).populate({
+    path: "columns",
+    options: { sort: { position: 1 } },
+    populate: {
+      path: "tasks",
+      options: { sort: { position: 1 } },
+    },
+  });
+
 boardRouter.get("/boards", validateUser, async (req, res) => {
   try {
     const user = req.user;
@@ -30,9 +42,9 @@ boardRouter.get("/boards/:boardId", validateUser, async (req, res) => {
   try {
     const user = req.user;
     const { boardId } = req.params;
-    const boards = await findBoard({ createdBy: user._id, _id: boardId });
-    if (boards.length > 0) {
-      res.json(boards[0]);
+    const board = await findBoardOne({ createdBy: user._id, _id: boardId });
+    if (board) {
+      res.json(board);
     } else {
       res.status(404).json(null);
     }
@@ -41,6 +53,45 @@ boardRouter.get("/boards/:boardId", validateUser, async (req, res) => {
     res.status(403).send({ message: e?.message, isSuccess: false });
   }
 });
+
+boardRouter.post(
+  "/boards/:boardId/changeBoardName",
+  validateUser,
+  async (req, res) => {
+    try {
+      const user = req.user;
+      const { boardId } = req.params;
+      const { name = "" } = req.body;
+      if (!name) {
+        throw new Error("name is required");
+      }
+      if (!boardId) {
+        throw new Error("board is required");
+      }
+      const queryObj = { _id: boardId, createdBy: user._id };
+
+      const data = await Board.findOneAndUpdate(
+        queryObj,
+        {
+          name,
+        },
+        { new: true, runValidators: true }
+      ).populate({
+        path: "columns",
+        options: { sort: { position: 1 } },
+        populate: {
+          path: "tasks",
+          options: { sort: { position: 1 } },
+        },
+      });
+
+      if (!data) return res.status(404).json({ message: "Board not found" });
+      return res.json(data);
+    } catch (e) {
+      res.status(403).send({ message: e?.message, isSuccess: false });
+    }
+  }
+);
 
 boardRouter.delete("/boards/:boardId", validateUser, async (req, res) => {
   try {
