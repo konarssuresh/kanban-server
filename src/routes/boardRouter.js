@@ -48,7 +48,6 @@ boardRouter.get("/boards/:boardId", validateUser, async (req, res) => {
     } else {
       res.status(404).json(null);
     }
-    res.json(boards);
   } catch (e) {
     res.status(403).send({ message: e?.message, isSuccess: false });
   }
@@ -177,6 +176,42 @@ boardRouter.post("/board/:boardId/column", validateUser, async (req, res) => {
     res.status(403).send({ message: e?.message, isSuccess: false });
   }
 });
+
+boardRouter.post(
+  "/board/:boardId/column/:columnId/changeColumnName",
+  validateUser,
+  async (req, res) => {
+    try {
+      const { boardId, columnId } = req.params;
+      const { name } = req.body;
+      if (!name) {
+        throw new Error("Name is required");
+      }
+      if (!boardId) {
+        throw new Error("boardId is required");
+      }
+      if (!columnId) {
+        throw new Error("columnId is required");
+      }
+
+      const column = await Column.findOne({
+        board: boardId,
+        createdBy: req.user.id,
+        _id: columnId,
+      });
+
+      if (!column) {
+        throw new Error("column not valid");
+      }
+
+      column.name = name;
+      const data = await column.save({ new: true });
+      res.json(data);
+    } catch (e) {
+      res.status(403).send({ message: e?.message, isSuccess: false });
+    }
+  }
+);
 
 boardRouter.delete(
   "/board/:boardId/column/:columnId",
