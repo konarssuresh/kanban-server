@@ -3,6 +3,7 @@ const cookieParser = require("cookie-parser");
 const { connectDb } = require("./config/database");
 const path = require("path");
 const dotenv = require("dotenv");
+const cors = require("cors");
 
 const authRouter = require("./routes/authRouter");
 const boardRouter = require("./routes/boardRouter");
@@ -13,6 +14,21 @@ dotenv.config({
 });
 
 const app = express();
+
+const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:5173")
+  .split(",")
+  .map((u) => u.trim());
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("CORS policy: Origin not allowed"), false);
+    },
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 app.use(cookieParser());
