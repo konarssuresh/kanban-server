@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const { validateUser } = require("../middleware/auth");
 const { validateUpdateTaskRequest } = require("../utils/utils");
 
@@ -58,13 +59,73 @@ taskRouter.post(
 
       const saved = await task.save();
 
-      const populated = await saved.populate([
-        { path: "column", select: "name position" },
-        { path: "board", select: "name" },
-        { path: "createdBy", select: "name email" },
-      ]);
+      // const populated = await saved.populate([
+      //   { path: "column", select: "name position" },
+      //   { path: "board", select: "name" },
+      //   { path: "createdBy", select: "name email" },
+      // ]);
 
-      res.status(201).json(populated);
+      res.status(201).json(saved);
+    } catch (e) {
+      res.status(400).send({ message: e?.message, isSuccess: false });
+    }
+  }
+);
+
+taskRouter.post(
+  "/board/:boardId/column/:columnId/task/:taskId/move",
+  validateUser,
+  async (req, res) => {
+    try {
+      const { boardId, columnId, taskId } = req.params;
+      const { toColumnId } = req.body;
+      const user = req.user;
+      if (!toColumnId) throw new Error("toColumnId is required");
+
+      const fromTask = await Task.findOne({
+        _id: taskId,
+        createdBy: user._id,
+        board: boardId,
+        column: columnId,
+      });
+
+      console.log({ toColumnId });
+
+      const toColumnData = await Column.findOne({
+        _id: toColumnId,
+        createdBy: user._id,
+        board: boardId,
+      });
+
+      console.log(fromTask);
+      console.log(toColumnData);
+
+      if (!fromTask || !toColumnData) {
+        throw new Error("Invalid  data cannot proceed");
+      }
+
+      if (fromTask.column.toString() === toColumnData._id.toString()) {
+        throw new Error("Cannot move to same column");
+      }
+
+      const maxTask = await Task.findOne({ column: toColumnData._id })
+        .sort({ position: -1 })
+        .select("position")
+        .lean();
+
+      const maxPos =
+        maxTask && maxTask.position !== undefined
+          ? Number(maxTask.position)
+          : 0;
+      const newPos = Number.isFinite(maxPos) ? maxPos + 1 : 1;
+
+      fromTask.column = toColumnData._id;
+      fromTask.position = newPos;
+
+      const saved = await fromTask.save();
+
+      res.status(200).json(saved);
+      res.send("test");
     } catch (e) {
       res.status(400).send({ message: e?.message, isSuccess: false });
     }
