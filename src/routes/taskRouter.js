@@ -69,7 +69,7 @@ taskRouter.post(
     } catch (e) {
       res.status(400).send({ message: e?.message, isSuccess: false });
     }
-  }
+  },
 );
 
 taskRouter.post(
@@ -129,7 +129,70 @@ taskRouter.post(
     } catch (e) {
       res.status(400).send({ message: e?.message, isSuccess: false });
     }
-  }
+  },
+);
+
+// update a subtask's isDone flag
+taskRouter.patch(
+  "/board/:boardId/column/:columnId/task/:taskId/subtask/:subtaskId",
+  validateUser,
+  async (req, res) => {
+    try {
+      const user = req.user;
+      const { boardId, columnId, taskId, subtaskId } = req.params;
+      const { isDone } = req.body;
+
+      if (
+        !mongoose.isValidObjectId(boardId) ||
+        !mongoose.isValidObjectId(taskId)
+      ) {
+        return res
+          .status(400)
+          .json({ message: "Invalid id(s)", isSuccess: false });
+      }
+
+      // basic boolean validation
+      if (isDone === undefined) {
+        return res
+          .status(400)
+          .json({ message: "isDone is required", isSuccess: false });
+      }
+
+      // find the task and verify ownership and location
+      const task = await Task.findOne({
+        _id: taskId,
+        board: boardId,
+        column: columnId,
+        createdBy: user._id,
+      });
+
+      if (!task) {
+        return res
+          .status(404)
+          .json({ message: "Task not found", isSuccess: false });
+      }
+
+      // try find subtask by subdocument id
+      const subtask = task.subtasks.id ? task.subtasks.id(subtaskId) : null;
+
+      if (!subtask) {
+        return res
+          .status(404)
+          .json({ message: "Subtask not found", isSuccess: false });
+      }
+
+      subtask.isDone = !!isDone;
+
+      const saved = await task.save();
+
+      // return the updated subtask and task id/position
+      const updatedSubtask = subtask || saved.subtasks[Number(subtaskId)];
+
+      return res.json({ taskId: saved._id, subtask: updatedSubtask });
+    } catch (e) {
+      return res.status(400).send({ message: e?.message, isSuccess: false });
+    }
+  },
 );
 
 taskRouter.put(
@@ -176,7 +239,7 @@ taskRouter.put(
     } catch (e) {
       res.status(403).send({ message: e?.message });
     }
-  }
+  },
 );
 
 taskRouter.delete(
@@ -211,7 +274,7 @@ taskRouter.delete(
     } catch (e) {
       res.status(403).send({ message: e?.message });
     }
-  }
+  },
 );
 
 module.exports = taskRouter;
