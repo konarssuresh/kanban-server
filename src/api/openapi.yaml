@@ -1,0 +1,593 @@
+openapi: 3.0.3
+info:
+  title: Kanban API
+  version: 1.0.0
+  description: API for the Kanban task management app.
+servers:
+  - url: http://localhost:8000
+security:
+  - cookieAuth: []
+paths:
+  /signup:
+    post:
+      summary: Sign up a new user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupRequest"
+      responses:
+        "200":
+          description: User created
+          content:
+            text/plain:
+              schema:
+                type: string
+        "403":
+          description: Validation or creation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security: []
+  /login:
+    post:
+      summary: Log in a user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful; auth cookie set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "403":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security: []
+  /boards:
+    get:
+      summary: List boards for the authenticated user
+      tags: [Boards]
+      responses:
+        "200":
+          description: List of boards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Board"
+        "403":
+          description: Unauthorized or error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /boards/{boardId}:
+    get:
+      summary: Get a board by id
+      tags: [Boards]
+      parameters:
+        - $ref: "#/components/parameters/BoardId"
+      responses:
+        "200":
+          description: Board
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Board"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                nullable: true
+        "403":
+          description: Unauthorized or error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Delete a board
+      tags: [Boards]
+      parameters:
+        - $ref: "#/components/parameters/BoardId"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: Board not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "403":
+          description: Unauthorized or error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /boards/{boardId}/changeBoardName:
+    post:
+      summary: Rename a board
+      tags: [Boards]
+      parameters:
+        - $ref: "#/components/parameters/BoardId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeBoardNameRequest"
+      responses:
+        "200":
+          description: Updated board
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Board"
+        "404":
+          description: Board not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "403":
+          description: Unauthorized or error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /board:
+    post:
+      summary: Create a new board
+      tags: [Boards]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBoardRequest"
+      responses:
+        "201":
+          description: Created board
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Board"
+        "403":
+          description: Validation or auth error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /board/{boardId}/column:
+    post:
+      summary: Add a column to a board
+      tags: [Columns]
+      parameters:
+        - $ref: "#/components/parameters/BoardId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateColumnRequest"
+      responses:
+        "201":
+          description: Created column
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Column"
+        "403":
+          description: Validation or auth error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /board/{boardId}/column/{columnId}/changeColumnName:
+    post:
+      summary: Rename a column
+      tags: [Columns]
+      parameters:
+        - $ref: "#/components/parameters/BoardId"
+        - $ref: "#/components/parameters/ColumnId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeColumnNameRequest"
+      responses:
+        "200":
+          description: Updated column
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Column"
+        "403":
+          description: Validation or auth error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /board/{boardId}/column/{columnId}:
+    delete:
+      summary: Delete a column
+      tags: [Columns]
+      parameters:
+        - $ref: "#/components/parameters/BoardId"
+        - $ref: "#/components/parameters/ColumnId"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "403":
+          description: Validation or auth error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /board/{boardId}/column/{columnId}/task:
+    post:
+      summary: Create a task in a column
+      tags: [Tasks]
+      parameters:
+        - $ref: "#/components/parameters/BoardId"
+        - $ref: "#/components/parameters/ColumnId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskRequest"
+      responses:
+        "201":
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /board/{boardId}/column/{columnId}/task/{taskId}:
+    put:
+      summary: Update a task
+      tags: [Tasks]
+      parameters:
+        - $ref: "#/components/parameters/BoardId"
+        - $ref: "#/components/parameters/ColumnId"
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTaskRequest"
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "403":
+          description: Validation or auth error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Delete a task
+      tags: [Tasks]
+      parameters:
+        - $ref: "#/components/parameters/BoardId"
+        - $ref: "#/components/parameters/ColumnId"
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "403":
+          description: Validation or auth error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /board/{boardId}/column/{columnId}/task/{taskId}/move:
+    post:
+      summary: Move a task to another column
+      tags: [Tasks]
+      parameters:
+        - $ref: "#/components/parameters/BoardId"
+        - $ref: "#/components/parameters/ColumnId"
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoveTaskRequest"
+      responses:
+        "200":
+          description: Moved task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /board/{boardId}/column/{columnId}/task/{taskId}/subtask/{subtaskId}:
+    patch:
+      summary: Update subtask completion
+      tags: [Tasks]
+      parameters:
+        - $ref: "#/components/parameters/BoardId"
+        - $ref: "#/components/parameters/ColumnId"
+        - $ref: "#/components/parameters/TaskId"
+        - $ref: "#/components/parameters/SubtaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSubtaskRequest"
+      responses:
+        "200":
+          description: Updated subtask
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateSubtaskResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+  parameters:
+    BoardId:
+      name: boardId
+      in: path
+      required: true
+      schema:
+        type: string
+    ColumnId:
+      name: columnId
+      in: path
+      required: true
+      schema:
+        type: string
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      schema:
+        type: string
+    SubtaskId:
+      name: subtaskId
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    SignupRequest:
+      type: object
+      required: [firstName, lastName, emailId, password]
+      properties:
+        firstName:
+          type: string
+          maxLength: 50
+        lastName:
+          type: string
+          maxLength: 50
+        emailId:
+          type: string
+          format: email
+        password:
+          type: string
+          description: Strong password required by server validation.
+    LoginRequest:
+      type: object
+      required: [emailId, password]
+      properties:
+        emailId:
+          type: string
+          format: email
+        password:
+          type: string
+    ChangeBoardNameRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+    CreateBoardRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        columns:
+          type: array
+          items:
+            type: string
+    CreateColumnRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+    ChangeColumnNameRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+    CreateTaskRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        subtasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Subtask"
+        position:
+          type: integer
+    UpdateTaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        subtasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Subtask"
+        position:
+          type: integer
+    MoveTaskRequest:
+      type: object
+      required: [toColumnId]
+      properties:
+        toColumnId:
+          type: string
+    UpdateSubtaskRequest:
+      type: object
+      required: [isDone]
+      properties:
+        isDone:
+          type: boolean
+    Board:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        createdBy:
+          type: string
+        columns:
+          type: array
+          items:
+            $ref: "#/components/schemas/Column"
+    Column:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        board:
+          type: string
+        createdBy:
+          type: string
+        position:
+          type: integer
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+    Task:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        column:
+          type: string
+        board:
+          type: string
+        createdBy:
+          type: string
+        position:
+          type: integer
+        subtasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Subtask"
+    Subtask:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        isDone:
+          type: boolean
+    UpdateSubtaskResponse:
+      type: object
+      properties:
+        taskId:
+          type: string
+        subtask:
+          $ref: "#/components/schemas/Subtask"
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        isSuccess:
+          type: boolean
