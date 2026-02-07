@@ -4,10 +4,12 @@ const { connectDb } = require("./config/database");
 const path = require("path");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const swaggerUi = require("swagger-ui-express");
 
 const authRouter = require("./routes/authRouter");
 const boardRouter = require("./routes/boardRouter");
 const taskRouter = require("./routes/taskRouter");
+const { loadOpenApiSpec } = require("./api/openapi");
 
 dotenv.config({
   path: path.resolve(__dirname, "../.env"),
@@ -32,6 +34,8 @@ app.use(
 
 app.use(express.json());
 app.use(cookieParser());
+
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(loadOpenApiSpec()));
 
 app.use("/", authRouter);
 app.use("/", boardRouter);
